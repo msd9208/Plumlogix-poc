@@ -1,16 +1,14 @@
-# plumlogix_poc
+# PlumLogix POC - Salesforce & MuleSoft Integration
 
-A new Flutter project.
+A Flutter application demonstrating integration capabilities with Salesforce and MuleSoft.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- OAuth 2.0 authentication (Salesforce & MuleSoft compatible)
+- Secure token storage using native keystores
+- REST API integration with bearer token authentication
+- WebView support for HTML/CSS/Angular content
+- Cross-platform support (Android & iOS)
+- Azure DevOps CI/CD pipeline configuration
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The app runs in demo mode by default for testing without OAuth credentials.
