@@ -1,0 +1,147 @@
+# Azure DevOps Pipeline for Flutter POC
+# Supports multiple environments: dev, qa, prod
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+      - release/*
+
+variables:
+  FLUTTER_VERSION: '3.24.0'
+  
+pool:
+  vmImage: 'macos-latest'
+
+stages:
+  - stage: Build
+    displayName: 'Build and Test'
+    jobs:
+      - job: FlutterBuild
+        displayName: 'Flutter Build'
+        steps:
+          # Install Flutter
+          - task: FlutterInstall@0
+            displayName: 'Install Flutter SDK'
+            inputs:
+              mode: 'auto'
+              channel: 'stable'
+              version: $(FLUTTER_VERSION)
+          
+          # Get dependencies
+          - script: |
+              flutter pub get
+            displayName: 'Flutter pub get'
+          
+          # Run code analysis
+          - script: |
+              flutter analyze
+            displayName: 'Flutter analyze'
+          
+          # Run tests
+          - script: |
+              flutter test
+            displayName: 'Run unit tests'
+          
+          # Build Android APK - Dev
+          - script: |
+              flutter build apk \
+                --debug \
+                --dart-define=ENV=dev \
+                --dart-define=SALESFORCE_CLIENT_ID=$(SALESFORCE_CLIENT_ID_DEV) \
+                --dart-define=MULESOFT_CLIENT_ID=$(MULESOFT_CLIENT_ID_DEV) \
+                --dart-define=API_BASE_URL=$(API_BASE_URL_DEV)
+            displayName: 'Build Android APK (Dev)'
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+          
+          # Build Android APK - QA
+          - script: |
+              flutter build apk \
+                --debug \
+                --dart-define=ENV=qa \
+                --dart-define=SALESFORCE_CLIENT_ID=$(SALESFORCE_CLIENT_ID_QA) \
+                --dart-define=MULESOFT_CLIENT_ID=$(MULESOFT_CLIENT_ID_QA) \
+                --dart-define=API_BASE_URL=$(API_BASE_URL_QA)
+            displayName: 'Build Android APK (QA)'
+            condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))
+          
+          # Build Android APK - Production
+          - script: |
+              flutter build apk \
+                --release \
+                --dart-define=ENV=prod \
+                --dart-define=SALESFORCE_CLIENT_ID=$(SALESFORCE_CLIENT_ID_PROD) \
+                --dart-define=MULESOFT_CLIENT_ID=$(MULESOFT_CLIENT_ID_PROD) \
+                --dart-define=API_BASE_URL=$(API_BASE_URL_PROD)
+            displayName: 'Build Android APK (Production)'
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+          
+          # Build iOS - Dev
+          - script: |
+              flutter build ios \
+                --debug \
+                --no-codesign \
+                --dart-define=ENV=dev \
+                --dart-define=SALESFORCE_CLIENT_ID=$(SALESFORCE_CLIENT_ID_DEV) \
+                --dart-define=MULESOFT_CLIENT_ID=$(MULESOFT_CLIENT_ID_DEV) \
+                --dart-define=API_BASE_URL=$(API_BASE_URL_DEV)
+            displayName: 'Build iOS (Dev)'
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+          
+          # Build iOS - QA
+          - script: |
+              flutter build ios \
+                --debug \
+                --no-codesign \
+                --dart-define=ENV=qa \
+                --dart-define=SALESFORCE_CLIENT_ID=$(SALESFORCE_CLIENT_ID_QA) \
+                --dart-define=MULESOFT_CLIENT_ID=$(MULESOFT_CLIENT_ID_QA) \
+                --dart-define=API_BASE_URL=$(API_BASE_URL_QA)
+            displayName: 'Build iOS (QA)'
+            condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))
+          
+          # Build iOS - Production
+          - script: |
+              flutter build ios \
+                --release \
+                --no-codesign \
+                --dart-define=ENV=prod \
+                --dart-define=SALESFORCE_CLIENT_ID=$(SALESFORCE_CLIENT_ID_PROD) \
+                --dart-define=MULESOFT_CLIENT_ID=$(MULESOFT_CLIENT_ID_PROD) \
+                --dart-define=API_BASE_URL=$(API_BASE_URL_PROD)
+            displayName: 'Build iOS (Production)'
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+          
+          # Publish Android artifacts
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Android APK'
+            inputs:
+              pathToPublish: 'build/app/outputs/flutter-apk/'
+              artifactName: 'android-apk'
+            condition: succeeded()
+          
+          # Publish iOS artifacts
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish iOS Build'
+            inputs:
+              pathToPublish: 'build/ios/'
+              artifactName: 'ios-build'
+            condition: succeeded()
+
+# Environment Variables (to be configured in Azure DevOps):
+# 
+# Development (dev):
+# - SALESFORCE_CLIENT_ID_DEV
+# - MULESOFT_CLIENT_ID_DEV
+# - API_BASE_URL_DEV
+#
+# QA:
+# - SALESFORCE_CLIENT_ID_QA
+# - MULESOFT_CLIENT_ID_QA
+# - API_BASE_URL_QA
+#
+# Production (prod):
+# - SALESFORCE_CLIENT_ID_PROD (Secret)
+# - MULESOFT_CLIENT_ID_PROD (Secret)
+# - API_BASE_URL_PROD
